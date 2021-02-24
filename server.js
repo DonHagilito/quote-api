@@ -2,15 +2,13 @@ const express = require('express');
 const app = express();
 
 const { quotes } = require('./data');
-const { getRandomElement } = require('./utils');
+const { getRandomElement, getIndexById } = require('./utils');
 
 const PORT = process.env.PORT || 4001;
 
 app.use(express.static('public'));
 
-app.listen(PORT, () =>{
-    console.log('Server upp and running');
-})
+
 
 app.get('/api/quotes/random', (req, res, next) =>{
     const resObj = {quote: getRandomElement(quotes)}
@@ -18,7 +16,6 @@ app.get('/api/quotes/random', (req, res, next) =>{
 })
 
 app.get('/api/quotes', (req, res, next) =>{
-    
     //Checks if there is a person key in the query object. Get all quotes from that person
     if (req.query.person){
         const resObj = {quotes: []};
@@ -39,11 +36,37 @@ app.get('/api/quotes', (req, res, next) =>{
 app.post('/api/quotes', (req, res, next) =>{
 
     if (req.query.quote && req.query.person){
-        const resObj = {quote: req.query};
-        quotes.push(req.query);
+    
+        quotes.push({id: quotes.length, quote: req.query.quote, person: req.query.person});
 
-        res.send(resObj);
+        const newlyAdded = quotes[quotes.length-1];
+        res.send({quote: {quote: newlyAdded.quote, person: newlyAdded.person}});//returns the last quote in the array, which is the newly added one.
     } else {
-        res.status(400).send();
+        res.status(400).send(); 
     }
+})
+
+app.put('/api/quotes/:id', (req, res, next) =>{
+    const index = getIndexById(parseInt(req.params.id), quotes);
+    if (index !== -1 &&  req.query.quote){
+        quotes[index].quote = req.query.quote;
+        res.send(quotes[index]);
+    } else {
+        res.status(404).send()
+    }
+})
+
+app.delete('/api/quotes/:id', (req, res, next) =>{
+    const index = getIndexById(req.params.id, quotes);
+
+    if (index !== -1){
+        quotes.splice(index, 1);
+        res.status(204).send();
+    } else{
+        res.status(404).send();
+    }
+})
+
+app.listen(PORT, () =>{
+    console.log('Server upp and running');
 })
